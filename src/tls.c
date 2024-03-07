@@ -17,7 +17,7 @@ struct tls_s {
 
 int
 tls_context_init (tls_context_t **result) {
-  BIO_METHOD *io = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "tls");
+  BIO_METHOD *io = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "callback");
 
   if (io == NULL) return -1;
 
