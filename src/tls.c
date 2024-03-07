@@ -3,6 +3,7 @@
 #include <openssl/base.h>
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 struct tls_context_s {
@@ -14,6 +15,31 @@ struct tls_s {
   SSL *handle;
   BIO *io;
 };
+
+static int
+tls__on_read (BIO *io, char *buf, int len) {
+  tls_t *tls = BIO_get_ex_data(io, 0);
+
+  return 0;
+}
+
+static int
+tls__on_write (BIO *io, const char *buf, int len) {
+  tls_t *tls = BIO_get_ex_data(io, 0);
+
+  return 0;
+}
+
+static long
+tls__on_ctrl (BIO *io, int cmd, long argc, void *argv) {
+  switch (cmd) {
+  case BIO_CTRL_FLUSH:
+    return 1;
+
+  default:
+    return 0;
+  }
+}
 
 int
 tls_context_init (tls_context_t **result) {
@@ -32,12 +58,18 @@ tls_context_init (tls_context_t **result) {
   tls_context_t *context = malloc(sizeof(tls_context_t));
 
   if (context == NULL) {
-    BIO_meth_free(io);
-
     SSL_CTX_free(handle);
+
+    BIO_meth_free(io);
 
     return -1;
   }
+
+  BIO_meth_set_read(io, tls__on_read);
+
+  BIO_meth_set_write(io, tls__on_write);
+
+  BIO_meth_set_ctrl(io, tls__on_ctrl);
 
   SSL_CTX_set_min_proto_version(handle, TLS1_3_VERSION);
 
@@ -52,9 +84,9 @@ tls_context_init (tls_context_t **result) {
 
 void
 tls_context_destroy (tls_context_t *context) {
-  BIO_meth_free(context->io);
-
   SSL_CTX_free(context->handle);
+
+  BIO_meth_free(context->io);
 
   free(context);
 }
@@ -76,16 +108,20 @@ tls_init (tls_context_t *context, tls_t **result) {
   tls_t *tls = malloc(sizeof(tls_t));
 
   if (tls == NULL) {
-    BIO_free(io);
-
     SSL_free(handle);
+
+    BIO_free(io);
 
     return -1;
   }
 
   BIO_set_ex_data(io, 0, (void *) tls);
 
+  BIO_set_init(io, true);
+
   SSL_set_ex_data(handle, 0, (void *) tls);
+
+  SSL_set_bio(handle, io, io);
 
   tls->handle = handle;
 
@@ -96,9 +132,9 @@ tls_init (tls_context_t *context, tls_t **result) {
 
 void
 tls_destroy (tls_t *tls) {
-  BIO_free(tls->io);
-
   SSL_free(tls->handle);
+
+  BIO_free(tls->io);
 
   free(tls);
 }
