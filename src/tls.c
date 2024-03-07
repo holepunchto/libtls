@@ -28,7 +28,11 @@ tls_context_init (tls_context_t **result) {
     return -1;
   }
 
+  SSL_CTX_set_ex_data(handle, 0, (void *) context);
+
   context->handle = handle;
+
+  *result = context;
 
   return 0;
 }
@@ -54,7 +58,11 @@ tls_init (tls_context_t *context, tls_t **result) {
     return -1;
   }
 
+  SSL_set_ex_data(handle, 0, (void *) tls);
+
   tls->handle = handle;
+
+  *result = tls;
 
   return 0;
 }
