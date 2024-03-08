@@ -1,8 +1,10 @@
-#include "../include/tls.h"
+#include "fixtures/cert.key.h"
+#include "fixtures/cert.pem.h"
 
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <tls.h>
 #include <unistd.h>
 
 static int a_pipe[2];
@@ -58,6 +60,12 @@ main () {
 
   tls_t *a;
   e = tls_init(context, on_a_read, on_a_write, &a);
+  assert(e == 0);
+
+  e = tls_use_certificate(a, (char *) cert_pem, cert_pem_len);
+  assert(e == 0);
+
+  e = tls_use_key(a, (char *) cert_key, cert_key_len);
   assert(e == 0);
 
   tls_t *b;

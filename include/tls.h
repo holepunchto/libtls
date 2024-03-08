@@ -31,6 +31,12 @@ void
 tls_destroy (tls_t *tls);
 
 int
+tls_use_certificate (tls_t *tls, const char *pem, int len);
+
+int
+tls_use_key (tls_t *tls, const char *pem, int len);
+
+int
 tls_connect (tls_t *tls);
 
 int

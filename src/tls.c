@@ -2,6 +2,7 @@
 
 #include <openssl/base.h>
 #include <openssl/bio.h>
+#include <openssl/evp.h>
 #include <openssl/ssl.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -14,6 +15,9 @@ struct tls_context_s {
 struct tls_s {
   SSL *handle;
   BIO *io;
+
+  X509 *certificate;
+  EVP_PKEY *key;
 
   tls_read_cb read;
   tls_write_cb write;
@@ -32,7 +36,7 @@ tls__on_read (BIO *io, char *data, int len) {
   if (res == tls_retry) {
     BIO_set_retry_read(io);
 
-    return 0;
+    return tls_ok;
   }
 
   return res;
@@ -49,7 +53,7 @@ tls__on_write (BIO *io, const char *data, int len) {
   if (res == tls_retry) {
     BIO_set_retry_write(io);
 
-    return 0;
+    return tls_ok;
   }
 
   return res;
@@ -70,14 +74,14 @@ int
 tls_context_init (tls_context_t **result) {
   BIO_METHOD *io = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "callback");
 
-  if (io == NULL) return -1;
+  if (io == NULL) return tls_error;
 
   SSL_CTX *handle = SSL_CTX_new(TLS_method());
 
   if (handle == NULL) {
     BIO_meth_free(io);
 
-    return -1;
+    return tls_error;
   }
 
   tls_context_t *context = malloc(sizeof(tls_context_t));
@@ -87,7 +91,7 @@ tls_context_init (tls_context_t **result) {
 
     BIO_meth_free(io);
 
-    return -1;
+    return tls_error;
   }
 
   BIO_meth_set_read(io, tls__on_read);
@@ -102,7 +106,7 @@ tls_context_init (tls_context_t **result) {
 
   *result = context;
 
-  return 0;
+  return tls_ok;
 }
 
 void
@@ -118,14 +122,14 @@ int
 tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **result) {
   BIO *io = BIO_new(context->io);
 
-  if (io == NULL) return -1;
+  if (io == NULL) return tls_error;
 
   SSL *handle = SSL_new(context->handle);
 
   if (io == NULL) {
     BIO_free(io);
 
-    return -1;
+    return tls_error;
   }
 
   tls_t *tls = malloc(sizeof(tls_t));
@@ -135,7 +139,7 @@ tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **
 
     BIO_free(io);
 
-    return -1;
+    return tls_error;
   }
 
   BIO_set_ex_data(io, 0, (void *) tls);
@@ -147,6 +151,9 @@ tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **
   tls->handle = handle;
   tls->io = io;
 
+  tls->certificate = NULL;
+  tls->key = NULL;
+
   tls->read = read;
   tls->write = write;
 
@@ -154,7 +161,7 @@ tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **
 
   *result = tls;
 
-  return 0;
+  return tls_ok;
 }
 
 void
@@ -163,7 +170,67 @@ tls_destroy (tls_t *tls) {
 
   BIO_free(tls->io);
 
+  if (tls->certificate) X509_free(tls->certificate);
+
+  if (tls->key) EVP_PKEY_free(tls->key);
+
   free(tls);
+}
+
+int
+tls_use_certificate (tls_t *tls, const char *pem, int len) {
+  BIO *io = BIO_new(BIO_s_mem());
+  BIO_write(io, pem, len);
+
+  X509 *handle = PEM_read_bio_X509(io, NULL, NULL, NULL);
+
+  BIO_free(io);
+
+  if (handle == NULL) return tls_error;
+
+  int res = SSL_use_certificate(tls->handle, handle);
+
+  if (res == 0) {
+    X509_free(handle);
+
+    tls->status = SSL_get_error(tls->handle, res);
+
+    return tls_error;
+  }
+
+  if (tls->certificate) X509_free(tls->certificate);
+
+  tls->certificate = handle;
+
+  return tls_ok;
+}
+
+int
+tls_use_key (tls_t *tls, const char *pem, int len) {
+  BIO *io = BIO_new(BIO_s_mem());
+  BIO_write(io, pem, len);
+
+  EVP_PKEY *handle = PEM_read_bio_PrivateKey(io, NULL, NULL, NULL);
+
+  BIO_free(io);
+
+  if (handle == NULL) return tls_error;
+
+  int res = SSL_use_PrivateKey(tls->handle, handle);
+
+  if (res == 0) {
+    EVP_PKEY_free(handle);
+
+    tls->status = SSL_get_error(tls->handle, res);
+
+    return tls_error;
+  }
+
+  if (tls->key) EVP_PKEY_free(tls->key);
+
+  tls->key = handle;
+
+  return tls_ok;
 }
 
 int
