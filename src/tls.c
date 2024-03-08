@@ -27,11 +27,11 @@ struct tls_s {
 
 static int
 tls__on_read (BIO *io, char *data, int len) {
-  BIO_clear_retry_flags(io);
-
   tls_t *tls = BIO_get_ex_data(io, 0);
 
   int res = tls->read(tls, data, len);
+
+  BIO_clear_retry_flags(io);
 
   if (res == tls_retry) {
     BIO_set_retry_read(io);
@@ -44,11 +44,11 @@ tls__on_read (BIO *io, char *data, int len) {
 
 static int
 tls__on_write (BIO *io, const char *data, int len) {
-  BIO_clear_retry_flags(io);
-
   tls_t *tls = BIO_get_ex_data(io, 0);
 
   int res = tls->write(tls, data, len);
+
+  BIO_clear_retry_flags(io);
 
   if (res == tls_retry) {
     BIO_set_retry_write(io);

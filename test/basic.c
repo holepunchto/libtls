@@ -1,57 +1,49 @@
+#include "buffer.h"
 #include "fixtures/cert.crt.h"
 #include "fixtures/cert.key.h"
 
 #include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <tls.h>
-#include <unistd.h>
 
-static int a_pipe[2];
-static int b_pipe[2];
+static tls__buffer_t a_buf;
+static tls__buffer_t b_buf;
 
 static int
 on_a_read (tls_t *tls, char *data, int len) {
-  int e = read(a_pipe[0], data, len);
-  if (e < 0 && errno == EAGAIN) return tls_retry;
-  return e;
+  int res = tls__buffer_read(&a_buf, data, len);
+  if (res == 0) return tls_retry;
+  return res;
 }
 
 static int
 on_a_write (tls_t *tls, const char *data, int len) {
-  int e = write(b_pipe[1], data, len);
-  if (e < 0 && errno == EAGAIN) return tls_retry;
-  return e;
+  int res = tls__buffer_write(&b_buf, data, len);
+  if (res == -1) return tls_retry;
+  return res;
 }
 
 static int
 on_b_read (tls_t *tls, char *data, int len) {
-  int e = read(b_pipe[0], data, len);
-  if (e < 0 && errno == EAGAIN) return tls_retry;
-  return e;
+  int res = tls__buffer_read(&b_buf, data, len);
+  if (res == 0) return tls_retry;
+  return res;
 }
 
 static int
 on_b_write (tls_t *tls, const char *data, int len) {
-  int e = write(a_pipe[1], data, len);
-  if (e < 0 && errno == EAGAIN) return tls_retry;
-  return e;
+  int res = tls__buffer_write(&a_buf, data, len);
+  if (res == -1) return tls_retry;
+  return res;
 }
 
 int
 main () {
   int e;
 
-  e = pipe(a_pipe);
+  e = tls__buffer_init(&a_buf, 65536);
   assert(e == 0);
 
-  e = fcntl(a_pipe[0], F_SETFL, fcntl(a_pipe[0], F_GETFL) | O_NONBLOCK);
-  assert(e == 0);
-
-  e = pipe(b_pipe);
-  assert(e == 0);
-
-  e = fcntl(b_pipe[0], F_SETFL, fcntl(b_pipe[0], F_GETFL) | O_NONBLOCK);
+  e = tls__buffer_init(&b_buf, 65536);
   assert(e == 0);
 
   tls_context_t *context;
