@@ -17,4 +17,4 @@ all: \
 		-days 365 \
 		-config $*.cnf \
 		-key $*.key \
-		-out $*.crt
+		-out $@
