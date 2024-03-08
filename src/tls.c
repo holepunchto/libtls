@@ -168,8 +168,6 @@ void
 tls_destroy (tls_t *tls) {
   SSL_free(tls->handle);
 
-  BIO_free(tls->io);
-
   if (tls->certificate) X509_free(tls->certificate);
 
   if (tls->key) EVP_PKEY_free(tls->key);
@@ -296,7 +294,7 @@ tls_write (tls_t *tls, const char *data, int len) {
 }
 
 int
-tls_close (tls_t *tls) {
+tls_shutdown (tls_t *tls) {
   int res = SSL_shutdown(tls->handle);
 
   if (res < 0) {
@@ -305,5 +303,5 @@ tls_close (tls_t *tls) {
     return tls_error;
   }
 
-  return res;
+  return tls_ok;
 }

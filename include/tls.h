@@ -49,7 +49,7 @@ int
 tls_write (tls_t *tls, const char *data, int len);
 
 int
-tls_close (tls_t *tls);
+tls_shutdown (tls_t *tls);
 
 #ifdef __cplusplus
 }

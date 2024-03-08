@@ -69,4 +69,18 @@ main () {
 
   e = tls_connect(b);
   assert(e == 0);
+
+  e = tls_shutdown(a);
+  assert(e == 0);
+
+  e = tls_shutdown(b);
+  assert(e == 0);
+
+  tls_destroy(a);
+  tls_destroy(b);
+
+  tls_context_destroy(context);
+
+  tls__buffer_destroy(&a_buf);
+  tls__buffer_destroy(&b_buf);
 }
