@@ -1,5 +1,5 @@
+#include "fixtures/cert.crt.h"
 #include "fixtures/cert.key.h"
-#include "fixtures/cert.pem.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -62,7 +62,7 @@ main () {
   e = tls_init(context, on_a_read, on_a_write, &a);
   assert(e == 0);
 
-  e = tls_use_certificate(a, (char *) cert_pem, cert_pem_len);
+  e = tls_use_certificate(a, (char *) cert_crt, cert_crt_len);
   assert(e == 0);
 
   e = tls_use_key(a, (char *) cert_key, cert_key_len);
