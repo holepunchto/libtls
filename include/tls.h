@@ -31,6 +31,12 @@ void
 tls_destroy (tls_t *tls);
 
 int
+tls_connect (tls_t *tls);
+
+int
+tls_accept (tls_t *tls);
+
+int
 tls_read (tls_t *tls, char *data, int len);
 
 int

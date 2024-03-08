@@ -29,7 +29,11 @@ tls__on_read (BIO *io, char *data, int len) {
 
   int res = tls->read(tls, data, len);
 
-  if (res == tls_retry) BIO_set_retry_read(io);
+  if (res == tls_retry) {
+    BIO_set_retry_read(io);
+
+    return 0;
+  }
 
   return res;
 }
@@ -42,7 +46,11 @@ tls__on_write (BIO *io, const char *data, int len) {
 
   int res = tls->write(tls, data, len);
 
-  if (res == tls_retry) BIO_set_retry_write(io);
+  if (res == tls_retry) {
+    BIO_set_retry_write(io);
+
+    return 0;
+  }
 
   return res;
 }
@@ -156,6 +164,32 @@ tls_destroy (tls_t *tls) {
   BIO_free(tls->io);
 
   free(tls);
+}
+
+int
+tls_connect (tls_t *tls) {
+  int res = SSL_connect(tls->handle);
+
+  if (res < 0) {
+    tls->status = SSL_get_error(tls->handle, res);
+
+    return tls_error;
+  }
+
+  return tls_ok;
+}
+
+int
+tls_accept (tls_t *tls) {
+  int res = SSL_accept(tls->handle);
+
+  if (res < 0) {
+    tls->status = SSL_get_error(tls->handle, res);
+
+    return tls_error;
+  }
+
+  return tls_ok;
 }
 
 int
