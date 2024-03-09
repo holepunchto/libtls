@@ -1,5 +1,6 @@
 #include "../include/tls.h"
 
+#include <assert.h>
 #include <openssl/base.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
@@ -76,6 +77,8 @@ tls__on_ctrl (BIO *io, int cmd, long argc, void *argv) {
 
 int
 tls_context_init (tls_context_t **result) {
+  int res;
+
   BIO_METHOD *io = BIO_meth_new(BIO_get_new_index() | BIO_TYPE_SOURCE_SINK, "callback");
 
   if (io == NULL) return tls_error;
@@ -102,8 +105,11 @@ tls_context_init (tls_context_t **result) {
   BIO_meth_set_write(io, tls__on_write);
   BIO_meth_set_ctrl(io, tls__on_ctrl);
 
-  SSL_CTX_set_ex_data(handle, 0, (void *) context);
-  SSL_CTX_set_min_proto_version(handle, TLS1_3_VERSION);
+  res = SSL_CTX_set_ex_data(handle, 0, (void *) context);
+  assert(res == 1);
+
+  res = SSL_CTX_set_min_proto_version(handle, TLS1_3_VERSION);
+  assert(res == 1);
 
   context->handle = handle;
   context->io = io;
@@ -124,6 +130,8 @@ tls_context_destroy (tls_context_t *context) {
 
 int
 tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **result) {
+  int res;
+
   BIO *io = BIO_new(context->io);
 
   if (io == NULL) return tls_error;
@@ -146,10 +154,14 @@ tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **
     return tls_error;
   }
 
-  BIO_set_ex_data(io, 0, (void *) tls);
+  res = BIO_set_ex_data(io, 0, (void *) tls);
+  assert(res == 1);
+
   BIO_set_init(io, true);
 
-  SSL_set_ex_data(handle, 0, (void *) tls);
+  res = SSL_set_ex_data(handle, 0, (void *) tls);
+  assert(res == 1);
+
   SSL_set_bio(handle, io, io);
 
   tls->handle = handle;
