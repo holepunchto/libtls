@@ -3,6 +3,7 @@
 #include "fixtures/cert.key.h"
 
 #include <assert.h>
+#include <string.h>
 #include <tls.h>
 
 static tls__buffer_t a_buf;
@@ -70,11 +71,38 @@ main () {
   e = tls_connect(b);
   assert(e == 0);
 
+  e = tls_handshake(b);
+  assert(e == tls_retry);
+
+  e = tls_handshake(a);
+  assert(e == tls_retry);
+
+  e = tls_handshake(b);
+  assert(e == tls_ok);
+
+  e = tls_handshake(a);
+  assert(e == tls_ok);
+
+  e = tls_write(a, "hello b", 8);
+  assert(e == 8);
+
+  char data[8];
+  e = tls_read(b, data, 8);
+  assert(e == 8);
+
+  assert(strcmp(data, "hello b") == 0);
+
   e = tls_shutdown(a);
-  assert(e == 0);
+  assert(e == tls_retry);
 
   e = tls_shutdown(b);
-  assert(e == 0);
+  assert(e == tls_retry);
+
+  e = tls_shutdown(a);
+  assert(e == tls_ok);
+
+  e = tls_shutdown(b);
+  assert(e == tls_ok);
 
   tls_destroy(a);
   tls_destroy(b);

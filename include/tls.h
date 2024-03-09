@@ -37,6 +37,9 @@ int
 tls_use_key (tls_t *tls, const char *pem, int len);
 
 int
+tls_handshake (tls_t *tls);
+
+int
 tls_connect (tls_t *tls);
 
 int
