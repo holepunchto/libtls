@@ -39,7 +39,7 @@ tls__on_read (BIO *io, char *data, int len) {
   if (res == tls_retry) {
     BIO_set_retry_read(io);
 
-    return tls_error;
+    return tls_retry;
   }
 
   return res;
@@ -58,7 +58,7 @@ tls__on_write (BIO *io, const char *data, int len) {
   if (res == tls_retry) {
     BIO_set_retry_write(io);
 
-    return tls_error;
+    return tls_retry;
   }
 
   return res;
