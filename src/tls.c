@@ -23,16 +23,18 @@ struct tls_s {
   tls_read_cb read;
   tls_write_cb write;
 
+  void *data;
+
   int status;
 };
 
 static int
-tls__on_read (BIO *io, char *data, int len) {
+tls__on_read (BIO *io, char *buffer, int len) {
   if (len == 0) return 0;
 
   tls_t *tls = BIO_get_ex_data(io, 0);
 
-  int res = tls->read(tls, data, len);
+  int res = tls->read(tls, buffer, len, tls->data);
 
   BIO_clear_retry_flags(io);
 
@@ -46,12 +48,12 @@ tls__on_read (BIO *io, char *data, int len) {
 }
 
 static int
-tls__on_write (BIO *io, const char *data, int len) {
+tls__on_write (BIO *io, const char *buffer, int len) {
   if (len == 0) return 0;
 
   tls_t *tls = BIO_get_ex_data(io, 0);
 
-  int res = tls->write(tls, data, len);
+  int res = tls->write(tls, buffer, len, tls->data);
 
   BIO_clear_retry_flags(io);
 
@@ -129,7 +131,7 @@ tls_context_destroy (tls_context_t *context) {
 }
 
 int
-tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **result) {
+tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, void *data, tls_t **result) {
   int res;
 
   BIO *io = BIO_new(context->io);
@@ -172,6 +174,8 @@ tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **
 
   tls->read = read;
   tls->write = write;
+
+  tls->data = data;
 
   tls->status = 0;
 
@@ -279,14 +283,14 @@ tls_accept (tls_t *tls) {
 }
 
 int
-tls_read (tls_t *tls, char *data, int len) {
-  int res = SSL_read(tls->handle, data, len);
+tls_read (tls_t *tls, char *buffer, int len) {
+  int res = SSL_read(tls->handle, buffer, len);
 
   if (res > 0) return res;
 
   int err = SSL_get_error(tls->handle, res);
 
-  if (err == SSL_ERROR_WANT_READ) return tls_retry;
+  if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return tls_retry;
 
   if (SSL_get_shutdown(tls->handle)) return tls_eof;
 
@@ -296,14 +300,14 @@ tls_read (tls_t *tls, char *data, int len) {
 }
 
 int
-tls_write (tls_t *tls, const char *data, int len) {
-  int res = SSL_write(tls->handle, data, len);
+tls_write (tls_t *tls, const char *buffer, int len) {
+  int res = SSL_write(tls->handle, buffer, len);
 
   if (res > 0) return res;
 
   int err = SSL_get_error(tls->handle, res);
 
-  if (err == SSL_ERROR_WANT_WRITE) return tls_retry;
+  if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return tls_retry;
 
   tls->status = err;
 

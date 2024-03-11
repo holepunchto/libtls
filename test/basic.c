@@ -10,29 +10,29 @@ static tls__buffer_t a_buf;
 static tls__buffer_t b_buf;
 
 static int
-on_a_read (tls_t *tls, char *data, int len) {
-  int res = tls__buffer_read(&a_buf, data, len);
+on_a_read (tls_t *tls, char *buffer, int len, void *data) {
+  int res = tls__buffer_read(&a_buf, buffer, len);
   if (res == 0) return tls_retry;
   return res;
 }
 
 static int
-on_a_write (tls_t *tls, const char *data, int len) {
-  int res = tls__buffer_write(&b_buf, data, len);
+on_a_write (tls_t *tls, const char *buffer, int len, void *data) {
+  int res = tls__buffer_write(&b_buf, buffer, len);
   if (res == -1) return tls_retry;
   return res;
 }
 
 static int
-on_b_read (tls_t *tls, char *data, int len) {
-  int res = tls__buffer_read(&b_buf, data, len);
+on_b_read (tls_t *tls, char *buffer, int len, void *data) {
+  int res = tls__buffer_read(&b_buf, buffer, len);
   if (res == 0) return tls_retry;
   return res;
 }
 
 static int
-on_b_write (tls_t *tls, const char *data, int len) {
-  int res = tls__buffer_write(&a_buf, data, len);
+on_b_write (tls_t *tls, const char *buffer, int len, void *data) {
+  int res = tls__buffer_write(&a_buf, buffer, len);
   if (res == -1) return tls_retry;
   return res;
 }
@@ -52,7 +52,7 @@ main () {
   assert(e == 0);
 
   tls_t *a;
-  e = tls_init(context, on_a_read, on_a_write, &a);
+  e = tls_init(context, on_a_read, on_a_write, NULL, &a);
   assert(e == 0);
 
   e = tls_use_certificate(a, (char *) cert_crt, cert_crt_len);
@@ -62,7 +62,7 @@ main () {
   assert(e == 0);
 
   tls_t *b;
-  e = tls_init(context, on_b_read, on_b_write, &b);
+  e = tls_init(context, on_b_read, on_b_write, NULL, &b);
   assert(e == 0);
 
   e = tls_accept(a);

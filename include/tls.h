@@ -8,8 +8,8 @@ extern "C" {
 typedef struct tls_context_s tls_context_t;
 typedef struct tls_s tls_t;
 
-typedef int (*tls_read_cb)(tls_t *, char *data, int len);
-typedef int (*tls_write_cb)(tls_t *, const char *data, int len);
+typedef int (*tls_read_cb)(tls_t *, char *buffer, int len, void *data);
+typedef int (*tls_write_cb)(tls_t *, const char *buffer, int len, void *data);
 
 typedef enum {
   tls_ok = 0,
@@ -25,7 +25,7 @@ void
 tls_context_destroy (tls_context_t *context);
 
 int
-tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, tls_t **result);
+tls_init (tls_context_t *context, tls_read_cb read, tls_write_cb write, void *data, tls_t **result);
 
 void
 tls_destroy (tls_t *tls);
@@ -46,10 +46,10 @@ int
 tls_accept (tls_t *tls);
 
 int
-tls_read (tls_t *tls, char *data, int len);
+tls_read (tls_t *tls, char *buffer, int len);
 
 int
-tls_write (tls_t *tls, const char *data, int len);
+tls_write (tls_t *tls, const char *buffer, int len);
 
 int
 tls_shutdown (tls_t *tls);
