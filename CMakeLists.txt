@@ -2,20 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 
 project(tls C CXX)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
 if(NOT TARGET ssl)
   add_subdirectory(vendor/boringssl EXCLUDE_FROM_ALL)
-
-  set_target_properties(
-    ssl
-    PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-  )
-
-  set_target_properties(
-    crypto
-    PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-  )
 endif()
 
 add_library(tls OBJECT)
