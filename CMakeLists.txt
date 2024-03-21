@@ -5,6 +5,10 @@ project(tls C CXX)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 if(NOT TARGET ssl)
+  if(MSVC)
+    set(OPENSSL_NO_ASM ON)
+  endif()
+
   add_subdirectory(vendor/boringssl EXCLUDE_FROM_ALL)
 endif()
 
