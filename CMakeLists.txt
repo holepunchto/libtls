@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(tls C CXX)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(NOT TARGET ssl)
   if(MSVC)
