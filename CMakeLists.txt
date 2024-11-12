@@ -1,16 +1,20 @@
 cmake_minimum_required(VERSION 3.25)
 
+find_package(cmake-fetch REQUIRED PATHS node_modules/cmake-fetch)
+
+set(CMAKE_MACOSX_BUNDLE OFF)
+
 project(tls C CXX)
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if(WIN32)
+  set(OPENSSL_NO_ASM ON)
 
-if(NOT TARGET ssl)
-  if(MSVC)
-    set(OPENSSL_NO_ASM ON)
-  endif()
-
-  add_subdirectory(vendor/boringssl EXCLUDE_FROM_ALL)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
+else()
+  enable_language(ASM)
 endif()
+
+fetch_package("github:google/boringssl#master")
 
 add_library(tls OBJECT)
 
